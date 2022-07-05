@@ -52,15 +52,12 @@ def my_form_post():
             - Lemmatization
             - Stop-words removal
             - Getting a unique list of words
-            - TODO: try removing names and company names like Navient (Proper nouns)
             """
-            # lemma = WordNetLemmatizer()
+
             lemmatizer = nltk.WordNetLemmatizer().lemmatize
             text = re.sub('\W+', ' ', str(text))
             text = re.sub(r'[0-9]+', '', text.lower())
-            # correcting spellings of words using TextBlob - user complaints are bound to have spelling mistakes
-            # However, this idea was later dropped because TextBlob may change the words.
-            # text = TextBlob(text).correct()
+
             word_pos = nltk.pos_tag(nltk.word_tokenize(text))
             normalized_text_lst = [lemmatizer(x[0], get_wordnet_pos(x[1])).lower() for x in word_pos]
             stop_words_free = [i for i in normalized_text_lst if i not in english_stopwords and len(i) > 3]
@@ -69,6 +66,7 @@ def my_form_post():
 
       # this is a time-consuming task
       custom_input['complaint'] = custom_input['complaint'].apply(clean_up)
+
       input_df = custom_input[custom_input.astype(str)['complaint'] != '[]']
       bow_input_df = input_df
       bow_input_df['complaints_untokenized'] = input_df['complaint'].apply(lambda x: ' '.join(x))
