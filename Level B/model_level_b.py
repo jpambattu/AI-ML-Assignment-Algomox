@@ -48,15 +48,11 @@ def clean_up(text):
     - Lemmatization
     - Stop-words removal
     - Getting a unique list of words
-    - TODO: try removing names and company names like Navient (Proper nouns)
     """
-    #lemma = WordNetLemmatizer()
     lemmatizer = nltk.WordNetLemmatizer().lemmatize
     text = re.sub('\W+', ' ', str(text))
     text = re.sub(r'[0-9]+', '', text.lower())
-    # correcting spellings of words using TextBlob - user complaints are bound to have spelling mistakes
-    # However, this idea was later dropped because TextBlob may change the words.
-    # text = TextBlob(text).correct()
+
     word_pos = nltk.pos_tag(nltk.word_tokenize(text))
     normalized_text_lst = [lemmatizer(x[0], get_wordnet_pos(x[1])).lower() for x in word_pos]
     stop_words_free = [i for i in normalized_text_lst if i not in english_stopwords and len(i) > 3]
@@ -67,8 +63,7 @@ def clean_up(text):
 df = main_df
 df = df[['Product', 'Consumer complaint narrative']]
 
-# Removing values which don't have 'Consumer complaint narrative' field. As this is the main field used for NLP
-# work. - 348,928 columns with not null consumer complaints.
+
 df = df[pd.notnull(df['Consumer complaint narrative'])]
 df = df.rename({'Consumer complaint narrative':'complaint', 'Product':'product'},
                axis='columns')
@@ -84,11 +79,7 @@ df.to_csv("C:/Users/Jpamb/Desktop/AIQ1/Level B/output_consumer_complaints.csv", 
 
 # Loading this from the saved version of this file.
 input_df = pd.read_csv(r"C:/Users/Jpamb/Desktop/AIQ1/Level B/output_consumer_complaints.csv",
-                       converters={"complaint": literal_eval}) #to fetch date as a list
-
-# Some rows have been stripped of words after the cleaning process and contain empty lists
-# These have to be removed as they don't help in the prediction problem at all.
-# Moreover, they produce NaNs after going through word2Vec, giving a vector of 300 (num_of_features) NaNs each.
+                       converters={"complaint": literal_eval})
 
 input_df = input_df[input_df.astype(str)['complaint'] != '[]']
 bow_input_df = input_df
@@ -103,13 +94,11 @@ class_labels = array(products_count_df['product'].unique())
 # TfidfVectorizer handles tokenization.
 bow_input_df['complaints_untokenized'] = bow_input_df['complaint'].apply(lambda x: ' '.join(x))
 
-# Goes out of memory without max_features on p2.xlarge. I tried to increase max_features but the memory error
-# wouldn't allow me. I'll try more on this on having access to more resources.
+
 tfidf_converter = TfidfVectorizer(max_features=1500, sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1',
                                   stop_words='english')
 features = tfidf_converter.fit_transform(bow_input_df.complaints_untokenized).toarray()
 labels = class_labels
-# Naive Bayes takes only non-negative values. So not adding the date features to the model.
 
 
 train_x, test_x, train_y, test_y = train_test_split(features, bow_input_df['product'], test_size=0.3,
